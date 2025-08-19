@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>📚 도서 목록</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background:#fafafa; }
+    h1 { margin-bottom: 20px; }
+
+    /* 필터 UI */
+    .filters { margin-bottom: 20px; display:flex; gap:10px; flex-wrap: wrap; }
+    .filters button {
+      padding: 6px 14px; border:1px solid #ccc; border-radius:20px;
+      background:#fff; cursor:pointer; font-size:14px; transition:0.2s;
+    }
+    .filters button.active { background:#1a73e8; color:#fff; border-color:#1a73e8; }
+
+    /* 카드 레이아웃 */
+    #book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+    .book-card {
+      border: 1px solid #ddd; border-radius: 10px;
+      padding: 14px; background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .book-card:hover { transform: translateY(-3px); box-shadow:0 4px 10px rgba(0,0,0,0.12); }
+    .row { display:flex; gap:12px; }
+    .cover { width:100px; height:140px; object-fit:cover; border-radius:6px; background:#f2f2f2; flex:0 0 100px; }
+    .no-cover { width:100px; height:140px; border-radius:6px; background:#f0f0f0;
+      display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; }
+    .info { flex:1; }
+    h3 { margin:0 0 6px; font-size:18px; color:#222; }
+    .meta { color:#666; font-size:13px; margin:2px 0; }
+    .reason { margin:8px 0 10px; font-size:14px; color:#333; }
+    .source { margin-top:6px; font-size:12px; color:#999; }
+  </style>
+</head>
+<body>
+  <h1>📚 도서 목록</h1>
+
+  <!-- 필터 버튼 -->
+  <div class="filters">
+    <strong>카테고리:</strong>
+    <button onclick="filterCategory('')">전체</button>
+    <button onclick="filterCategory('인문')">인문</button>
+    <button onclick="filterCategory('사회')">사회</button>
+    <button onclick="filterCategory('과학')">과학</button>
+    <button onclick="filterCategory('경제/경영')">경제/경영</button>
+    <button onclick="filterCategory('기타')">기타</button>
+  </div>
+
+  <div class="filters">
+    <strong>난이도:</strong>
+    <button onclick="filterLevel('')">전체</button>
+    <button onclick="filterLevel('입문')">입문</button>
+    <button onclick="filterLevel('초급')">초급</button>
+    <button onclick="filterLevel('중급')">중급</button>
+    <button onclick="filterLevel('고급')">고급</button>
+    <button onclick="filterLevel('전문')">전문</button>
+  </div>
+
+  <div id="book-list">불러오는 중...</div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
+
+    let currentCategory = "";
+    let currentLevel = "";
+
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+    ));
+
+    async function loadBooks() {
+      const container = document.getElementById('book-list');
+      container.textContent = "불러오는 중...";
+
+      try {
+        const params = new URLSearchParams({ action:"list", status:"승인" });
+        if (currentCategory) params.append("category", currentCategory);
+        if (currentLevel) params.append("level", currentLevel);
+
+        const res = await fetch(`${API_URL}?${params.toString()}`);
+        const data = await res.json();
+        container.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.textContent = "조건에 맞는 도서가 없습니다.";
+          return;
+        }
+
+        data.forEach((book, idx) => {
+          const card = document.createElement("div");
+          card.className = "book-card";
+          card.setAttribute("data-id", idx);
+
+          const coverHTML = book.cover
+            ? `<img class="cover" src="${esc(book.cover)}" alt="${esc(book.title)} 표지"/>`
+            : `<div class="no-cover">표지 없음</div>`;
+
+          card.innerHTML = `
+            <div class="row">
+              ${coverHTML}
+              <div class="info">
+                <h3>${esc(book.title)}</h3>
+                <div class="meta"><b>저자:</b> ${esc(book.author)}</div>
+                <div class="meta"><b>분야:</b> ${esc(book.category)}</div>
+                <div class="meta"><b>난이도:</b> ${esc(book.level)}</div>
+                <div class="reason">${book.reason ? esc(book.reason) : "설명 없음"}</div>
+                <div class="source">이미지/링크 제공: 알라딘</div>
+              </div>
+            </div>
+          `;
+
+          card.addEventListener("click", () => {
+            window.location.href = `books.html?id=${idx}`;
+          });
+
+          container.appendChild(card);
+        });
+      } catch (err) {
+        container.textContent = "불러오기 실패: " + err;
+      }
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      loadBooks();
+    }
+    function filterLevel(level) {
+      currentLevel = level;
+      loadBooks();
+    }
+
+    loadBooks();
+  </script>
+</body>
+</html>

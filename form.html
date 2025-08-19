@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>📚 BookMap - 도서 등록</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
+    h1 { margin-bottom: 20px; }
+    form {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    label { display: block; margin: 12px 0 6px; font-weight: bold; }
+    input, select, textarea {
+      width: 100%; padding: 8px;
+      border: 1px solid #ccc; border-radius: 6px;
+      font-size: 14px;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      margin-top: 20px;
+      padding: 12px; width: 100%;
+      border: none; border-radius: 6px;
+      background: #1a73e8; color: #fff;
+      font-size: 16px; cursor: pointer;
+    }
+    button:hover { background: #1669c1; }
+    .msg { margin-top: 12px; text-align: center; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>📚 도서 등록</h1>
+
+  <form id="bookForm">
+    <label>제목</label>
+    <input type="text" name="title" required />
+
+    <label>저자</label>
+    <input type="text" name="author" required />
+
+    <label>분류 (카테고리)</label>
+    <select name="category" required>
+      <option value="">-- 선택 --</option>
+      <option>인문</option>
+      <option>철학</option>
+      <option>문학</option>
+      <option>사회</option>
+      <option>과학</option>
+      <option>역사</option>
+    </select>
+
+    <label>난이도</label>
+    <select name="level" required>
+      <option value="">-- 선택 --</option>
+      <option>입문</option>
+      <option>초급</option>
+      <option>중급</option>
+      <option>고급</option>
+      <option>전문</option>
+    </select>
+
+    <label>추천 이유</label>
+    <textarea name="reason"></textarea>
+
+    <label>구매/참고 링크</label>
+    <input type="url" name="link" />
+
+    <label>표지 이미지 URL</label>
+    <input type="url" name="cover" />
+
+    <label>작성자</label>
+    <input type="text" name="submitter" />
+
+    <button type="submit">제출하기</button>
+    <div class="msg" id="msg"></div>
+  </form>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
+
+    document.getElementById("bookForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "submit", entry: data }),
+      });
+
+      const result = await res.json();
+      const msg = document.getElementById("msg");
+
+      if (result.ok) {
+        msg.textContent = "✅ 등록이 완료되었습니다!";
+        msg.style.color = "green";
+        form.reset();
+      } else {
+        msg.textContent = "❌ 오류: " + (result.error || "등록 실패");
+        msg.style.color = "red";
+      }
+    });
+  </script>
+</body>
+</html>
