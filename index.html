@@ -4,77 +4,55 @@
   <meta charset="UTF-8" />
   <title>BookMap 테스트</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
-    h1 { margin-bottom: 10px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #fafafa; }
+    h1 { margin-bottom: 16px; }
 
     /* 필터 영역 */
     #controls {
       margin: 20px 0;
       display: flex;
-      gap: 16px;
       flex-wrap: wrap;
-      padding: 14px 18px;
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      gap: 12px;
     }
-
-    #controls label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #controls select {
-      padding: 8px 14px;
-      font-size: 14px;
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 14px; font-weight: bold; margin-right: 6px; color: #333; }
+    .filter-btn {
+      padding: 6px 14px;
       border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fafafa;
+      border-radius: 20px;
+      font-size: 13px;
       cursor: pointer;
+      background: #fff;
       transition: all 0.2s;
     }
-
-    #controls select:hover {
+    .filter-btn:hover { background: #f1f1f1; }
+    .filter-btn.active {
+      background: #1a73e8;
+      color: #fff;
       border-color: #1a73e8;
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(26,115,232,0.1);
-    }
-
-    #controls select:focus {
-      outline: none;
-      border-color: #1a73e8;
-      box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
     }
 
     /* 책 카드 리스트 */
     #book-list { 
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); 
-      gap: 16px; 
+      gap: 20px; 
     }
-
     .book-card {
-      border: 1px solid #ddd; 
+      border: 1px solid #e0e0e0; 
       border-radius: 10px;
-      padding: 14px; 
+      padding: 16px; 
       background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
     .book-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transform: translateY(-5px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.12);
     }
-
-    .row { display: flex; gap: 12px; }
+    .row { display: flex; gap: 14px; }
     .cover {
-      width: 100px; height: 140px; object-fit: cover; border-radius: 6px; background: #f2f2f2;
+      width: 100px; height: 140px; object-fit: cover; border-radius: 8px; background: #f2f2f2;
       flex: 0 0 100px;
     }
     .no-cover { 
@@ -83,7 +61,7 @@
       color:#888; font-size:12px; 
     }
     .info { flex: 1; }
-    h3 { margin: 0 0 6px; font-size: 18px; }
+    h3 { margin: 0 0 8px; font-size: 18px; }
     .meta { color: #666; font-size: 13px; margin: 2px 0; }
     .reason { margin: 8px 0 10px; font-size: 14px; }
     .link { color: #1a73e8; text-decoration: none; font-size: 14px; }
@@ -94,20 +72,14 @@
 <body>
   <h1>📚 BookMap - 승인된 책 목록</h1>
 
-  <!-- 필터 컨트롤 -->
+  <!-- 필터 버튼 UI -->
   <div id="controls">
-    <label>
-      카테고리:
-      <select id="categoryFilter">
-        <option value="">전체</option>
-      </select>
-    </label>
-    <label>
-      난이도:
-      <select id="levelFilter">
-        <option value="">전체</option>
-      </select>
-    </label>
+    <div class="filter-group" id="categoryGroup">
+      <span class="filter-label">카테고리:</span>
+    </div>
+    <div class="filter-group" id="levelGroup">
+      <span class="filter-label">난이도:</span>
+    </div>
   </div>
 
   <div id="book-list">불러오는 중...</div>
@@ -120,6 +92,8 @@
     }[c]));
 
     let allBooks = [];
+    let selectedCategory = "";
+    let selectedLevel = "";
 
     async function loadBooks() {
       const container = document.getElementById('book-list');
@@ -150,36 +124,46 @@
         if (book.level) levelSet.add(book.level);
       });
 
-      const categoryFilter = document.getElementById('categoryFilter');
-      const levelFilter = document.getElementById('levelFilter');
+      const categoryGroup = document.getElementById('categoryGroup');
+      const levelGroup = document.getElementById('levelGroup');
 
-      categorySet.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        categoryFilter.appendChild(opt);
+      // 전체 버튼 추가
+      createFilterButton(categoryGroup, "전체", "", "category");
+      categorySet.forEach(cat => createFilterButton(categoryGroup, cat, cat, "category"));
+
+      createFilterButton(levelGroup, "전체", "", "level");
+      levelSet.forEach(lv => createFilterButton(levelGroup, lv, lv, "level"));
+    }
+
+    function createFilterButton(group, label, value, type) {
+      const btn = document.createElement("button");
+      btn.className = "filter-btn";
+      btn.textContent = label;
+      btn.dataset.value = value;
+      btn.addEventListener("click", () => {
+        if (type === "category") {
+          selectedCategory = value;
+          setActive(group, btn);
+        } else {
+          selectedLevel = value;
+          setActive(group, btn);
+        }
+        applyFilters();
       });
+      if (value === "") btn.classList.add("active"); // 기본 전체 선택
+      group.appendChild(btn);
+    }
 
-      levelSet.forEach(lv => {
-        const opt = document.createElement('option');
-        opt.value = lv;
-        opt.textContent = lv;
-        levelFilter.appendChild(opt);
-      });
-
-      categoryFilter.addEventListener('change', applyFilters);
-      levelFilter.addEventListener('change', applyFilters);
+    function setActive(group, btn) {
+      [...group.querySelectorAll(".filter-btn")].forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
     }
 
     function applyFilters() {
-      const category = document.getElementById('categoryFilter').value;
-      const level = document.getElementById('levelFilter').value;
-
       const filtered = allBooks.filter(book => {
-        return (category === '' || book.category === category) &&
-               (level === '' || book.level === level);
+        return (selectedCategory === "" || book.category === selectedCategory) &&
+               (selectedLevel === "" || book.level === selectedLevel);
       });
-
       renderBooks(filtered);
     }
 
