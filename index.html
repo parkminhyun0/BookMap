@@ -117,22 +117,19 @@
 
     function populateFilters(data) {
       const categorySet = new Set();
-      const levelSet = new Set();
-
-      data.forEach(book => {
-        if (book.category) categorySet.add(book.category);
-        if (book.level) levelSet.add(book.level);
-      });
+      data.forEach(book => { if (book.category) categorySet.add(book.category); });
 
       const categoryGroup = document.getElementById('categoryGroup');
       const levelGroup = document.getElementById('levelGroup');
 
-      // 전체 버튼 추가
+      // 카테고리 버튼 생성
       createFilterButton(categoryGroup, "전체", "", "category");
       categorySet.forEach(cat => createFilterButton(categoryGroup, cat, cat, "category"));
 
+      // 난이도 버튼 고정 5단계
+      const levels = ["입문", "초급", "중급", "고급", "전문"];
       createFilterButton(levelGroup, "전체", "", "level");
-      levelSet.forEach(lv => createFilterButton(levelGroup, lv, lv, "level"));
+      levels.forEach(lv => createFilterButton(levelGroup, lv, lv, "level"));
     }
 
     function createFilterButton(group, label, value, type) {
