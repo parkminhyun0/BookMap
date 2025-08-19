@@ -4,19 +4,11 @@
   <meta charset="UTF-8">
   <title>도서 목록</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .card:hover {
-      cursor: pointer;
-      transform: scale(1.02);
-      transition: 0.2s;
-    }
-  </style>
 </head>
 <body class="bg-light">
   <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>📖 도서 목록</h2>
-      <!-- ✅ 메인화면으로 돌아가기 버튼 -->
       <a href="home.html" class="btn btn-outline-dark btn-sm">🏠 메인으로</a>
     </div>
 
@@ -25,20 +17,34 @@
     <!-- 난이도 버튼 영역 -->
     <div id="level-filters" class="mb-4"></div>
 
+    <!-- ✅ 로딩 메시지 -->
+    <div id="loading" class="text-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">로딩중...</span>
+      </div>
+      <p class="mt-2">📚 도서 목록을 불러오는 중...</p>
+    </div>
+
     <div id="book-list" class="row g-3"></div>
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec"; 
   let booksData = [];
 
   async function loadBooks() {
-    const res = await fetch(API_URL);
-    booksData = await res.json();
+    try {
+      const res = await fetch(API_URL);
+      booksData = await res.json();
 
-    renderCategoryButtons(booksData);
-    renderLevelButtons();
-    renderBooks(booksData);
+      renderCategoryButtons(booksData);
+      renderLevelButtons();
+      renderBooks(booksData);
+    } catch (err) {
+      document.getElementById("loading").innerHTML = `<p class="text-danger">❌ 데이터를 불러오지 못했습니다.</p>`;
+    } finally {
+      document.getElementById("loading").style.display = "none"; // ✅ 로딩 메시지 제거
+    }
   }
 
   // ✅ 카테고리 버튼 자동 생성
@@ -62,12 +68,12 @@
     `).join('');
   }
 
-  // ✅ 카드 출력 + 클릭 시 상세페이지 이동
+  // ✅ 카드 출력
   function renderBooks(data) {
     const container = document.getElementById("book-list");
-    container.innerHTML = data.map((b, i) => `
+    container.innerHTML = data.map(b => `
       <div class="col-md-6">
-        <div class="card h-100 shadow-sm" onclick="goToDetail(${i})">
+        <div class="card h-100 shadow-sm">
           <div class="row g-0">
             <div class="col-4">
               <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
@@ -78,19 +84,14 @@
                 <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
                 <p class="card-text"><small class="text-muted">분류: ${b.category || '-'}</small></p>
                 <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
+                <p class="card-text">${b.reason || ''}</p>
+                ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-sm btn-outline-secondary">구매/참고</a>` : ''}
               </div>
             </div>
           </div>
         </div>
       </div>
     `).join('');
-  }
-
-  // ✅ 상세페이지 이동 (books.html?id=인덱스)
-  function goToDetail(index) {
-    const book = booksData[index];
-    const params = new URLSearchParams(book).toString();
-    window.location.href = `books.html?${params}`;
   }
 
   // ✅ 필터 기능
