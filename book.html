@@ -7,49 +7,59 @@
 </head>
 <body class="bg-light">
   <div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2>📖 도서 목록</h2>
-      <a href="home.html" class="btn btn-outline-dark btn-sm">🏠 메인으로</a>
-    </div>
+    <h2 class="mb-4">📖 도서 목록</h2>
 
     <!-- 카테고리 버튼 영역 -->
     <div id="category-filters" class="mb-3"></div>
     <!-- 난이도 버튼 영역 -->
     <div id="level-filters" class="mb-4"></div>
 
-    <!-- ✅ 로딩 메시지 -->
-    <div id="loading" class="text-center my-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">로딩중...</span>
+    <!-- 도서 목록 -->
+    <div id="book-list" class="row g-3 text-center">
+      <div id="loading-msg" class="d-flex justify-content-center align-items-center w-100">
+        <div class="spinner-border text-primary me-2" role="status"></div>
+        <span class="text-muted">로딩중...</span>
       </div>
-      <p class="mt-2">📚 도서 목록을 불러오는 중...</p>
     </div>
 
-    <div id="book-list" class="row g-3"></div>
+    <div class="mt-4">
+      <a href="index.html" class="btn btn-secondary">⬅ 메인으로</a>
+    </div>
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec"; 
+  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
   let booksData = [];
 
   async function loadBooks() {
+    const container = document.getElementById("book-list");
+    const loadingMsg = document.getElementById("loading-msg");
     try {
+      loadingMsg.style.display = "flex"; // 스피너 표시
+
       const res = await fetch(API_URL);
       booksData = await res.json();
+
+      loadingMsg.style.display = "none"; // 데이터 도착 시 스피너 제거
+
+      if (!Array.isArray(booksData) || booksData.length === 0) {
+        container.innerHTML = `<p class="text-muted">등록된 도서가 없습니다.</p>`;
+        return;
+      }
 
       renderCategoryButtons(booksData);
       renderLevelButtons();
       renderBooks(booksData);
     } catch (err) {
-      document.getElementById("loading").innerHTML = `<p class="text-danger">❌ 데이터를 불러오지 못했습니다.</p>`;
-    } finally {
-      document.getElementById("loading").style.display = "none"; // ✅ 로딩 메시지 제거
+      loadingMsg.innerHTML = `<span class="text-danger">❌ 불러오기 실패: ${err}</span>`;
     }
   }
 
   // ✅ 카테고리 버튼 자동 생성
   function renderCategoryButtons(data) {
-    const uniqueCategories = [...new Set(data.map(b => b.category).filter(Boolean))];
+    const allCategories = data.flatMap(b => (b.category || "").split(",").map(c => c.trim()));
+    const uniqueCategories = [...new Set(allCategories.filter(Boolean))];
+
     const container = document.getElementById("category-filters");
     container.innerHTML = `
       <button class="btn btn-secondary btn-sm me-2" onclick="filterBooks('','')">전체</button>
@@ -71,35 +81,46 @@
   // ✅ 카드 출력
   function renderBooks(data) {
     const container = document.getElementById("book-list");
-    container.innerHTML = data.map(b => `
-      <div class="col-md-6">
-        <div class="card h-100 shadow-sm">
-          <div class="row g-0">
-            <div class="col-4">
-              <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
-            </div>
-            <div class="col-8">
-              <div class="card-body">
-                <h5 class="card-title">${b.title}</h5>
-                <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
-                <p class="card-text"><small class="text-muted">분류: ${b.category || '-'}</small></p>
-                <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
-                <p class="card-text">${b.reason || ''}</p>
-                ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-sm btn-outline-secondary">구매/참고</a>` : ''}
+    container.innerHTML = data.map((b, idx) => {
+      const categories = (b.category || "").split(",").map(c => `<span class="badge bg-primary me-1">${c.trim()}</span>`).join(" ");
+      return `
+        <div class="col-md-6">
+          <div class="card h-100 shadow-sm" onclick="goDetail(${idx})" style="cursor:pointer;">
+            <div class="row g-0">
+              <div class="col-4">
+                <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
+              </div>
+              <div class="col-8">
+                <div class="card-body">
+                  <h5 class="card-title">${b.title}</h5>
+                  <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
+                  <p class="card-text">${categories}</p>
+                  <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
+                  <p class="card-text">${b.reason || ''}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  }
+
+  // ✅ 상세 페이지 이동
+  function goDetail(idx) {
+    window.location.href = `books.html?id=${idx}`;
   }
 
   // ✅ 필터 기능
   function filterBooks(category, level) {
     let filtered = [...booksData];
 
-    if (category) filtered = filtered.filter(b => b.category === category);
-    if (level && level !== "전체") filtered = filtered.filter(b => b.level === level);
+    if (category) {
+      filtered = filtered.filter(b => (b.category || "").split(",").map(c => c.trim()).includes(category));
+    }
+    if (level && level !== "전체") {
+      filtered = filtered.filter(b => b.level === level);
+    }
 
     renderBooks(filtered);
   }
