@@ -5,8 +5,26 @@
   <title>BookMap 테스트</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
-    #controls { margin-bottom: 20px; display: flex; gap: 12px; }
-    select { padding: 6px 10px; font-size: 14px; }
+    #controls {
+      margin: 15px 0;
+      display: flex;
+      gap: 20px;
+      padding: 10px;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    #controls label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    #controls select {
+      margin-left: 6px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
     #book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
     .book-card {
       border: 1px solid #ccc; border-radius: 8px;
@@ -62,17 +80,28 @@
 
     let allBooks = [];
 
-    // ✅ 책 렌더링
-    function renderBooks(data) {
+    async function loadBooks() {
+      const container = document.getElementById('book-list');
+      try {
+        const res = await fetch(`${API_URL}?action=list&status=${encodeURIComponent('승인')}`);
+        const data = await res.json();
+        allBooks = data;
+        renderBooks(allBooks);
+        fillCategoryOptions(allBooks);
+      } catch (err) {
+        container.textContent = '불러오기 실패: ' + err;
+      }
+    }
+
+    function renderBooks(books) {
       const container = document.getElementById('book-list');
       container.innerHTML = '';
-
-      if (!Array.isArray(data) || data.length === 0) {
+      if (!Array.isArray(books) || books.length === 0) {
         container.textContent = '조건에 맞는 도서가 없습니다.';
         return;
       }
 
-      data.forEach(book => {
+      books.forEach(book => {
         const card = document.createElement('div');
         card.className = 'book-card';
 
@@ -98,50 +127,36 @@
             </div>
           </div>
         `;
+
         container.appendChild(card);
       });
     }
 
-    // ✅ 필터 적용
-    function applyFilters() {
-      const categoryVal = document.getElementById('categoryFilter').value;
-      const levelVal = document.getElementById('levelFilter').value;
+    function fillCategoryOptions(books) {
+      const categorySelect = document.getElementById('categoryFilter');
+      const categories = [...new Set(books.map(b => b.category).filter(Boolean))];
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+    }
 
-      let filtered = allBooks;
-      if (categoryVal) {
-        filtered = filtered.filter(b => b.category === categoryVal);
+    function applyFilters() {
+      const selectedCategory = document.getElementById('categoryFilter').value;
+      const selectedLevel = document.getElementById('levelFilter').value;
+
+      let filtered = [...allBooks];
+      if (selectedCategory) {
+        filtered = filtered.filter(b => b.category === selectedCategory);
       }
-      if (levelVal) {
-        filtered = filtered.filter(b => b.level === levelVal);
+      if (selectedLevel) {
+        filtered = filtered.filter(b => b.level === selectedLevel);
       }
       renderBooks(filtered);
     }
 
-    // ✅ 데이터 불러오기
-    async function loadBooks() {
-      const container = document.getElementById('book-list');
-      try {
-        const res = await fetch(`${API_URL}?action=list&status=${encodeURIComponent('승인')}`);
-        const data = await res.json();
-        allBooks = data;
-
-        // 카테고리 목록 동적 생성
-        const categorySet = new Set(allBooks.map(b => b.category).filter(Boolean));
-        const categorySelect = document.getElementById('categoryFilter');
-        categorySet.forEach(cat => {
-          const opt = document.createElement('option');
-          opt.value = cat;
-          opt.textContent = cat;
-          categorySelect.appendChild(opt);
-        });
-
-        renderBooks(allBooks);
-      } catch (err) {
-        container.textContent = '불러오기 실패: ' + err;
-      }
-    }
-
-    // ✅ 이벤트 연결
     document.getElementById('categoryFilter').addEventListener('change', applyFilters);
     document.getElementById('levelFilter').addEventListener('change', applyFilters);
 
