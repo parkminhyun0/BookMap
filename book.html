@@ -4,55 +4,127 @@
   <meta charset="UTF-8" />
   <title>BookMap 상세페이지</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .cover { width: 200px; height: 280px; object-fit: cover; border-radius: 6px; }
-    h1 { font-size: 24px; margin-top: 0; }
-    .meta { margin: 6px 0; color: #555; }
-    .reason { margin: 14px 0; font-size: 16px; }
-    a { color: #1a73e8; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #fafafa;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 10px;
+    }
+    .row {
+      display: flex;
+      gap: 24px;
+    }
+    .cover {
+      width: 200px;
+      height: 280px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #f2f2f2;
+      flex-shrink: 0;
+    }
+    .details {
+      flex: 1;
+    }
+    .meta {
+      margin: 6px 0;
+      font-size: 15px;
+      color: #555;
+    }
+    .reason {
+      margin: 16px 0;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    a.link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #1a73e8;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.link:hover {
+      text-decoration: underline;
+    }
+    .back {
+      display: inline-block;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #666;
+      text-decoration: none;
+    }
+    .back:hover {
+      color: #000;
+    }
   </style>
 </head>
 <body>
-  <div class="container" id="detail">불러오는 중...</div>
+  <div class="container">
+    <h1 id="title">도서 제목</h1>
+    <div class="row">
+      <img id="cover" class="cover" src="" alt="책 표지" />
+      <div class="details">
+        <div class="meta"><b>저자:</b> <span id="author"></span></div>
+        <div class="meta"><b>분야:</b> <span id="category"></span></div>
+        <div class="meta"><b>난이도:</b> <span id="level"></span></div>
+        <div class="reason" id="reason"></div>
+        <a id="link" class="link" href="#" target="_blank">구매 링크</a>
+      </div>
+    </div>
+    <a href="index.html" class="back">← 목록으로 돌아가기</a>
+  </div>
+
   <script>
+    // Apps Script 웹앱 URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec';
 
+    // URL 파라미터 읽기
+    const params = new URLSearchParams(window.location.search);
+    const bookId = parseInt(params.get('id'), 10);
+
+    // 이스케이프 처리
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
 
-    async function loadDetail() {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id'); // index.html에서 전달된 id
-      const container = document.getElementById('detail');
+    async function loadBook() {
       try {
-        const res = await fetch(`${API_URL}?action=list&status=승인`);
+        const res = await fetch(`${API_URL}?action=list&status=${encodeURIComponent('승인')}`);
         const data = await res.json();
-        const book = data[id];
 
-        if (!book) {
-          container.textContent = '도서를 찾을 수 없습니다.';
+        if (!Array.isArray(data) || data.length <= bookId) {
+          document.querySelector('.container').innerHTML = '<p>책 정보를 찾을 수 없습니다.</p>';
           return;
         }
 
-        container.innerHTML = `
-          <h1>${esc(book.title)}</h1>
-          <img class="cover" src="${esc(book.cover)}" alt="${esc(book.title)}" />
-          <div class="meta"><b>저자:</b> ${esc(book.author)}</div>
-          <div class="meta"><b>분야:</b> ${esc(book.category)}</div>
-          <div class="meta"><b>난이도:</b> ${esc(book.level)}</div>
-          <div class="reason">${esc(book.reason)}</div>
-          ${book.link ? `<a href="${esc(book.link)}" target="_blank">구매 링크</a>` : ''}
-          <p><a href="index.html">← 목록으로 돌아가기</a></p>
-        `;
-      } catch (e) {
-        container.textContent = '불러오기 실패: ' + e;
+        const book = data[bookId];
+        document.getElementById('title').textContent = esc(book.title);
+        document.getElementById('author').textContent = esc(book.author);
+        document.getElementById('category').textContent = esc(book.category);
+        document.getElementById('level').textContent = esc(book.level);
+        document.getElementById('reason').textContent = esc(book.reason || '설명 없음');
+        document.getElementById('cover').src = book.cover || '';
+        document.getElementById('cover').alt = esc(book.title + ' 표지');
+        document.getElementById('link').href = book.link || '#';
+      } catch (err) {
+        document.querySelector('.container').innerHTML = '<p>불러오기 실패: ' + err + '</p>';
       }
     }
 
-    loadDetail();
+    loadBook();
   </script>
 </body>
 </html>
