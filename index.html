@@ -5,6 +5,8 @@
   <title>BookMap 테스트</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
+    #controls { margin-bottom: 20px; display: flex; gap: 12px; }
+    select { padding: 6px 10px; font-size: 14px; }
     #book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
     .book-card {
       border: 1px solid #ccc; border-radius: 8px;
@@ -28,62 +30,120 @@
 </head>
 <body>
   <h1>📚 BookMap - 승인된 책 목록</h1>
+
+  <!-- ✅ 필터 UI -->
+  <div id="controls">
+    <label>
+      카테고리:
+      <select id="categoryFilter">
+        <option value="">전체</option>
+      </select>
+    </label>
+    <label>
+      난이도:
+      <select id="levelFilter">
+        <option value="">전체</option>
+        <option value="입문">입문</option>
+        <option value="초급">초급</option>
+        <option value="중급">중급</option>
+        <option value="고급">고급</option>
+        <option value="전문">전문</option>
+      </select>
+    </label>
+  </div>
+
   <div id="book-list">불러오는 중...</div>
 
   <script>
-    // Apps Script 웹앱 URL (/exec로 끝나는 주소)
     const API_URL = 'https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec';
-
-    // 간단 XSS 이스케이프
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
 
+    let allBooks = [];
+
+    // ✅ 책 렌더링
+    function renderBooks(data) {
+      const container = document.getElementById('book-list');
+      container.innerHTML = '';
+
+      if (!Array.isArray(data) || data.length === 0) {
+        container.textContent = '조건에 맞는 도서가 없습니다.';
+        return;
+      }
+
+      data.forEach(book => {
+        const card = document.createElement('div');
+        card.className = 'book-card';
+
+        const coverHTML = book.cover
+          ? `<img class="cover" src="${esc(book.cover)}" alt="${esc(book.title)} 표지" />`
+          : `<div class="no-cover">표지 없음</div>`;
+
+        const linkHTML = book.link
+          ? `<a class="link" href="${esc(book.link)}" target="_blank" rel="noopener sponsored nofollow">링크 보기</a>`
+          : `<span class="meta">링크 없음</span>`;
+
+        card.innerHTML = `
+          <div class="row">
+            ${coverHTML}
+            <div class="info">
+              <h3>${esc(book.title)}</h3>
+              <div class="meta"><b>저자:</b> ${esc(book.author)}</div>
+              <div class="meta"><b>분야:</b> ${esc(book.category)}</div>
+              <div class="meta"><b>난이도:</b> ${esc(book.level)}</div>
+              <div class="reason">${book.reason ? esc(book.reason) : '설명 없음'}</div>
+              ${linkHTML}
+              <div class="source">이미지/링크 제공: 알라딘</div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ✅ 필터 적용
+    function applyFilters() {
+      const categoryVal = document.getElementById('categoryFilter').value;
+      const levelVal = document.getElementById('levelFilter').value;
+
+      let filtered = allBooks;
+      if (categoryVal) {
+        filtered = filtered.filter(b => b.category === categoryVal);
+      }
+      if (levelVal) {
+        filtered = filtered.filter(b => b.level === levelVal);
+      }
+      renderBooks(filtered);
+    }
+
+    // ✅ 데이터 불러오기
     async function loadBooks() {
       const container = document.getElementById('book-list');
       try {
         const res = await fetch(`${API_URL}?action=list&status=${encodeURIComponent('승인')}`);
         const data = await res.json();
-        container.innerHTML = '';
+        allBooks = data;
 
-        if (!Array.isArray(data) || data.length === 0) {
-          container.textContent = '승인된 도서가 아직 없습니다.';
-          return;
-        }
-
-        data.forEach(book => {
-          const card = document.createElement('div');
-          card.className = 'book-card';
-
-          const coverHTML = book.cover
-            ? `<img class="cover" src="${esc(book.cover)}" alt="${esc(book.title)} 표지" />`
-            : `<div class="no-cover">표지 없음</div>`;
-
-          const linkHTML = book.link
-            ? `<a class="link" href="${esc(book.link)}" target="_blank" rel="noopener sponsored nofollow">링크 보기</a>`
-            : `<span class="meta">링크 없음</span>`;
-
-          card.innerHTML = `
-            <div class="row">
-              ${coverHTML}
-              <div class="info">
-                <h3>${esc(book.title)}</h3>
-                <div class="meta"><b>저자:</b> ${esc(book.author)}</div>
-                <div class="meta"><b>분야:</b> ${esc(book.category)}</div>
-                <div class="meta"><b>난이도:</b> ${esc(book.level)}</div>
-                <div class="reason">${book.reason ? esc(book.reason) : '설명 없음'}</div>
-                ${linkHTML}
-                <div class="source">이미지/링크 제공: 알라딘</div>
-              </div>
-            </div>
-          `;
-
-          container.appendChild(card);
+        // 카테고리 목록 동적 생성
+        const categorySet = new Set(allBooks.map(b => b.category).filter(Boolean));
+        const categorySelect = document.getElementById('categoryFilter');
+        categorySet.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          categorySelect.appendChild(opt);
         });
+
+        renderBooks(allBooks);
       } catch (err) {
         container.textContent = '불러오기 실패: ' + err;
       }
     }
+
+    // ✅ 이벤트 연결
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+    document.getElementById('levelFilter').addEventListener('change', applyFilters);
 
     loadBooks();
   </script>
