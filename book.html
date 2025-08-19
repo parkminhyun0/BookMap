@@ -14,62 +14,57 @@
     <!-- 난이도 버튼 영역 -->
     <div id="level-filters" class="mb-4"></div>
 
-    <!-- 도서 목록 -->
-    <div id="book-list" class="row g-3 text-center">
-      <div id="loading-msg" class="d-flex justify-content-center align-items-center w-100">
-        <div class="spinner-border text-primary me-2" role="status"></div>
-        <span class="text-muted">로딩중...</span>
-      </div>
-    </div>
+    <!-- 로딩 안내 -->
+    <div id="loading" class="text-muted">⏳ 로딩중...</div>
+
+    <div id="book-list" class="row g-3"></div>
 
     <div class="mt-4">
-      <a href="index.html" class="btn btn-secondary">⬅ 메인으로</a>
+      <a href="home.html" class="btn btn-secondary">⬅ 메인으로</a>
     </div>
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
+  const API_URL = "YOUR_APPS_SCRIPT_URL"; // Apps Script WebApp URL
   let booksData = [];
 
   async function loadBooks() {
-    const container = document.getElementById("book-list");
-    const loadingMsg = document.getElementById("loading-msg");
+    document.getElementById("loading").style.display = "block";
     try {
-      loadingMsg.style.display = "flex"; // 스피너 표시
-
       const res = await fetch(API_URL);
-      booksData = await res.json();
+      let allBooks = await res.json();
 
-      loadingMsg.style.display = "none"; // 데이터 도착 시 스피너 제거
-
-      if (!Array.isArray(booksData) || booksData.length === 0) {
-        container.innerHTML = `<p class="text-muted">등록된 도서가 없습니다.</p>`;
-        return;
-      }
+      // ✅ 승인된 도서만 출력
+      booksData = allBooks.filter(b => b.status === "승인");
 
       renderCategoryButtons(booksData);
       renderLevelButtons();
       renderBooks(booksData);
     } catch (err) {
-      loadingMsg.innerHTML = `<span class="text-danger">❌ 불러오기 실패: ${err}</span>`;
+      console.error(err);
+      document.getElementById("loading").textContent = "❌ 데이터를 불러오지 못했습니다.";
+    } finally {
+      document.getElementById("loading").style.display = "none";
     }
   }
 
-  // ✅ 카테고리 버튼 자동 생성
   function renderCategoryButtons(data) {
-    const allCategories = data.flatMap(b => (b.category || "").split(",").map(c => c.trim()));
-    const uniqueCategories = [...new Set(allCategories.filter(Boolean))];
+    const categories = new Set();
+    data.forEach(b => {
+      if (b.category) {
+        b.category.split(",").map(c => c.trim()).forEach(c => categories.add(c));
+      }
+    });
 
     const container = document.getElementById("category-filters");
     container.innerHTML = `
       <button class="btn btn-secondary btn-sm me-2" onclick="filterBooks('','')">전체</button>
-      ${uniqueCategories.map(cat => `
+      ${[...categories].map(cat => `
         <button class="btn btn-outline-primary btn-sm me-2" onclick="filterBooks('${cat}','')">${cat}</button>
       `).join('')}
     `;
   }
 
-  // ✅ 난이도 버튼 고정
   function renderLevelButtons() {
     const levels = ["전체","입문","초급","중급","고급","전문"];
     const container = document.getElementById("level-filters");
@@ -78,51 +73,45 @@
     `).join('');
   }
 
-  // ✅ 카드 출력
   function renderBooks(data) {
     const container = document.getElementById("book-list");
-    container.innerHTML = data.map((b, idx) => {
-      const categories = (b.category || "").split(",").map(c => `<span class="badge bg-primary me-1">${c.trim()}</span>`).join(" ");
-      return `
-        <div class="col-md-6">
-          <div class="card h-100 shadow-sm" onclick="goDetail(${idx})" style="cursor:pointer;">
-            <div class="row g-0">
-              <div class="col-4">
-                <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
-              </div>
-              <div class="col-8">
-                <div class="card-body">
-                  <h5 class="card-title">${b.title}</h5>
-                  <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
-                  <p class="card-text">${categories}</p>
-                  <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
-                  <p class="card-text">${b.reason || ''}</p>
-                </div>
+    if (!data.length) {
+      container.innerHTML = "<p class='text-muted'>등록된 도서가 없습니다.</p>";
+      return;
+    }
+
+    container.innerHTML = data.map((b, i) => `
+      <div class="col-md-6">
+        <div class="card h-100 shadow-sm" onclick="openBook(${i})" style="cursor:pointer">
+          <div class="row g-0">
+            <div class="col-4">
+              <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
+            </div>
+            <div class="col-8">
+              <div class="card-body">
+                <h5 class="card-title">${b.title}</h5>
+                <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
+                <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
+                <p class="card-text text-truncate">${b.reason || ''}</p>
               </div>
             </div>
           </div>
         </div>
-      `;
-    }).join('');
+      </div>
+    `).join('');
   }
 
-  // ✅ 상세 페이지 이동
-  function goDetail(idx) {
-    window.location.href = `books.html?id=${idx}`;
-  }
-
-  // ✅ 필터 기능
   function filterBooks(category, level) {
     let filtered = [...booksData];
-
-    if (category) {
-      filtered = filtered.filter(b => (b.category || "").split(",").map(c => c.trim()).includes(category));
-    }
-    if (level && level !== "전체") {
-      filtered = filtered.filter(b => b.level === level);
-    }
-
+    if (category) filtered = filtered.filter(b => b.category && b.category.includes(category));
+    if (level && level !== "전체") filtered = filtered.filter(b => b.level === level);
     renderBooks(filtered);
+  }
+
+  function openBook(index) {
+    const book = booksData[index];
+    localStorage.setItem("selectedBook", JSON.stringify(book));
+    window.location.href = "books.html";
   }
 
   loadBooks();
