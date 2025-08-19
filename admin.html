@@ -2,124 +2,82 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>📑 BookMap 관리자 페이지</title>
+  <title>📋 관리자 페이지 (승인 / 삭제)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
   <div class="container py-5">
-    <h2 class="mb-4">📑 관리자 페이지 (승인 / 삭제)</h2>
-    <div id="loading" class="alert alert-info">⏳ 도서 목록을 불러오는 중입니다...</div>
-    <div id="admin-list"></div>
+    <h2 class="mb-4">📋 관리자 페이지 (승인 / 삭제)</h2>
+    <table class="table table-bordered bg-white shadow-sm">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>제목</th>
+          <th>저자</th>
+          <th>출판사</th>
+          <th>상태</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody id="admin-list"></tbody>
+    </table>
+    <a href="book.html" class="btn btn-secondary">← 도서 목록으로</a>
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
-
+  const API_URL = "👉여기에_새로_배포된_웹앱_URL"; 
   let booksData = [];
 
-  // ✅ 도서 목록 불러오기
-  async function loadAdminBooks() {
-    try {
-      const res = await fetch(API_URL); // 모든 도서 불러오기 (승인 여부 관계없이)
-      booksData = await res.json();
+  async function loadBooks() {
+    const res = await fetch(API_URL);
+    booksData = await res.json();
 
-      document.getElementById("loading").style.display = "none";
-
-      if (!Array.isArray(booksData) || booksData.length === 0) {
-        document.getElementById("admin-list").innerHTML = `<div class="alert alert-warning">도서가 없습니다.</div>`;
-        return;
-      }
-
-      renderAdminList();
-    } catch (err) {
-      document.getElementById("loading").textContent = "❌ 불러오기 실패: " + err;
-    }
+    const tbody = document.getElementById("admin-list");
+    tbody.innerHTML = booksData.map((b, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${b.title || '-'}</td>
+        <td>${b.author || '-'}</td>
+        <td>${b.publisher || '-'}</td>
+        <td>${b.status || '-'}</td>
+        <td>
+          <button class="btn btn-success btn-sm" onclick="approveBook(${b._row})">승인</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBook(${b._row})">삭제</button>
+        </td>
+      </tr>
+    `).join('');
   }
 
-  // ✅ 관리자 목록 렌더링
-  function renderAdminList() {
-    const container = document.getElementById("admin-list");
-    container.innerHTML = `
-      <table class="table table-bordered table-striped bg-white">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>제목</th>
-            <th>저자</th>
-            <th>출판사</th>
-            <th>상태</th>
-            <th>관리</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${booksData.map((b, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${b.title || '-'}</td>
-              <td>${b.author || '-'}</td>
-              <td>${b.publisher || '-'}</td>
-              <td>${b.status || '대기중'}</td>
-              <td>
-                <button class="btn btn-sm btn-success me-2" onclick="approveBook(${i})">승인</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteBook(${i})">삭제</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  // ✅ 승인 기능
-  async function approveBook(index) {
-    const book = booksData[index];
-    if (!book) return alert("도서를 찾을 수 없습니다.");
-
-    if (!confirm(`"${book.title}" 도서를 승인하시겠습니까?`)) return;
-
+  async function approveBook(row) {
     const res = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "update",
-        id: index + 2, // 시트에서 2행부터 데이터 시작
-        patch: { status: "승인" }
-      })
+      body: JSON.stringify({ action:"approve", id:row }),
     });
-
     const result = await res.json();
-    if (result.ok) {
+    if(result.ok) {
       alert("✅ 승인 완료");
-      loadAdminBooks();
+      loadBooks();
     } else {
       alert("❌ 승인 실패: " + result.error);
     }
   }
 
-  // ✅ 삭제 기능
-  async function deleteBook(index) {
-    const book = booksData[index];
-    if (!book) return alert("도서를 찾을 수 없습니다.");
-
-    if (!confirm(`"${book.title}" 도서를 삭제하시겠습니까?`)) return;
-
+  async function deleteBook(row) {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
     const res = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({
-        action: "delete",
-        id: index + 2 // 시트에서 2행부터 데이터 시작
-      })
+      body: JSON.stringify({ action:"delete", id:row }),
     });
-
     const result = await res.json();
-    if (result.ok) {
+    if(result.ok) {
       alert("🗑️ 삭제 완료");
-      loadAdminBooks();
+      loadBooks();
     } else {
       alert("❌ 삭제 실패: " + result.error);
     }
   }
 
-  loadAdminBooks();
+  loadBooks();
   </script>
 </body>
 </html>
