@@ -4,10 +4,21 @@
   <meta charset="UTF-8">
   <title>도서 목록</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .card:hover {
+      cursor: pointer;
+      transform: scale(1.02);
+      transition: 0.2s;
+    }
+  </style>
 </head>
 <body class="bg-light">
   <div class="container py-5">
-    <h2 class="mb-4">📖 도서 목록</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>📖 도서 목록</h2>
+      <!-- ✅ 메인화면으로 돌아가기 버튼 -->
+      <a href="home.html" class="btn btn-outline-dark btn-sm">🏠 메인으로</a>
+    </div>
 
     <!-- 카테고리 버튼 영역 -->
     <div id="category-filters" class="mb-3"></div>
@@ -18,7 +29,7 @@
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec"; // ← Apps Script 배포 URL
+  const API_URL = "https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec";
   let booksData = [];
 
   async function loadBooks() {
@@ -51,12 +62,12 @@
     `).join('');
   }
 
-  // ✅ 카드 출력
+  // ✅ 카드 출력 + 클릭 시 상세페이지 이동
   function renderBooks(data) {
     const container = document.getElementById("book-list");
-    container.innerHTML = data.map(b => `
+    container.innerHTML = data.map((b, i) => `
       <div class="col-md-6">
-        <div class="card h-100 shadow-sm">
+        <div class="card h-100 shadow-sm" onclick="goToDetail(${i})">
           <div class="row g-0">
             <div class="col-4">
               <img src="${b.cover || 'https://via.placeholder.com/120x180'}" class="img-fluid rounded-start" alt="${b.title}">
@@ -67,14 +78,19 @@
                 <p class="card-text"><small class="text-muted">저자: ${b.author || '-'}</small></p>
                 <p class="card-text"><small class="text-muted">분류: ${b.category || '-'}</small></p>
                 <p class="card-text"><small class="text-muted">난이도: ${b.level || '-'}</small></p>
-                <p class="card-text">${b.reason || ''}</p>
-                ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-sm btn-outline-secondary">구매/참고</a>` : ''}
               </div>
             </div>
           </div>
         </div>
       </div>
     `).join('');
+  }
+
+  // ✅ 상세페이지 이동 (books.html?id=인덱스)
+  function goToDetail(index) {
+    const book = booksData[index];
+    const params = new URLSearchParams(book).toString();
+    window.location.href = `books.html?${params}`;
   }
 
   // ✅ 필터 기능
