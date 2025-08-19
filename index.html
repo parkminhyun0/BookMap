@@ -4,39 +4,84 @@
   <meta charset="UTF-8" />
   <title>BookMap 테스트</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
+    h1 { margin-bottom: 10px; }
+
+    /* 필터 영역 */
     #controls {
-      margin: 15px 0;
+      margin: 20px 0;
       display: flex;
-      gap: 20px;
-      padding: 10px;
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
+
     #controls label {
       font-size: 14px;
-      font-weight: bold;
+      font-weight: 600;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
     #controls select {
-      margin-left: 6px;
-      padding: 6px 10px;
+      padding: 8px 14px;
       font-size: 14px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      border-radius: 6px;
+      background: #fafafa;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    #book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+
+    #controls select:hover {
+      border-color: #1a73e8;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(26,115,232,0.1);
+    }
+
+    #controls select:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
+    }
+
+    /* 책 카드 리스트 */
+    #book-list { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); 
+      gap: 16px; 
+    }
+
     .book-card {
-      border: 1px solid #ccc; border-radius: 8px;
-      padding: 14px; max-width: 520px; background: #fff;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      border: 1px solid #ddd; 
+      border-radius: 10px;
+      padding: 14px; 
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
+
+    .book-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
     .row { display: flex; gap: 12px; }
     .cover {
       width: 100px; height: 140px; object-fit: cover; border-radius: 6px; background: #f2f2f2;
       flex: 0 0 100px;
     }
-    .no-cover { width: 100px; height: 140px; border-radius: 6px; background: #f0f0f0; display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; }
+    .no-cover { 
+      width: 100px; height: 140px; border-radius: 6px; 
+      background: #f0f0f0; display:flex; align-items:center; justify-content:center; 
+      color:#888; font-size:12px; 
+    }
     .info { flex: 1; }
     h3 { margin: 0 0 6px; font-size: 18px; }
     .meta { color: #666; font-size: 13px; margin: 2px 0; }
@@ -49,7 +94,7 @@
 <body>
   <h1>📚 BookMap - 승인된 책 목록</h1>
 
-  <!-- ✅ 필터 UI -->
+  <!-- 필터 컨트롤 -->
   <div id="controls">
     <label>
       카테고리:
@@ -61,11 +106,6 @@
       난이도:
       <select id="levelFilter">
         <option value="">전체</option>
-        <option value="입문">입문</option>
-        <option value="초급">초급</option>
-        <option value="중급">중급</option>
-        <option value="고급">고급</option>
-        <option value="전문">전문</option>
       </select>
     </label>
   </div>
@@ -74,6 +114,7 @@
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxFb7I_eFXm7nPtkcezalzNRSeJ3Pg5lPM6byRbiEHkF8pXVjReRC_kYKsVD0flABYrQw/exec';
+
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
@@ -85,18 +126,68 @@
       try {
         const res = await fetch(`${API_URL}?action=list&status=${encodeURIComponent('승인')}`);
         const data = await res.json();
+        container.innerHTML = '';
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.textContent = '승인된 도서가 아직 없습니다.';
+          return;
+        }
+
         allBooks = data;
-        renderBooks(allBooks);
-        fillCategoryOptions(allBooks);
+        populateFilters(data);
+        renderBooks(data);
       } catch (err) {
         container.textContent = '불러오기 실패: ' + err;
       }
     }
 
+    function populateFilters(data) {
+      const categorySet = new Set();
+      const levelSet = new Set();
+
+      data.forEach(book => {
+        if (book.category) categorySet.add(book.category);
+        if (book.level) levelSet.add(book.level);
+      });
+
+      const categoryFilter = document.getElementById('categoryFilter');
+      const levelFilter = document.getElementById('levelFilter');
+
+      categorySet.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categoryFilter.appendChild(opt);
+      });
+
+      levelSet.forEach(lv => {
+        const opt = document.createElement('option');
+        opt.value = lv;
+        opt.textContent = lv;
+        levelFilter.appendChild(opt);
+      });
+
+      categoryFilter.addEventListener('change', applyFilters);
+      levelFilter.addEventListener('change', applyFilters);
+    }
+
+    function applyFilters() {
+      const category = document.getElementById('categoryFilter').value;
+      const level = document.getElementById('levelFilter').value;
+
+      const filtered = allBooks.filter(book => {
+        return (category === '' || book.category === category) &&
+               (level === '' || book.level === level);
+      });
+
+      renderBooks(filtered);
+    }
+
     function renderBooks(books) {
       const container = document.getElementById('book-list');
       container.innerHTML = '';
-      if (!Array.isArray(books) || books.length === 0) {
+
+      if (books.length === 0) {
         container.textContent = '조건에 맞는 도서가 없습니다.';
         return;
       }
@@ -131,34 +222,6 @@
         container.appendChild(card);
       });
     }
-
-    function fillCategoryOptions(books) {
-      const categorySelect = document.getElementById('categoryFilter');
-      const categories = [...new Set(books.map(b => b.category).filter(Boolean))];
-      categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        categorySelect.appendChild(opt);
-      });
-    }
-
-    function applyFilters() {
-      const selectedCategory = document.getElementById('categoryFilter').value;
-      const selectedLevel = document.getElementById('levelFilter').value;
-
-      let filtered = [...allBooks];
-      if (selectedCategory) {
-        filtered = filtered.filter(b => b.category === selectedCategory);
-      }
-      if (selectedLevel) {
-        filtered = filtered.filter(b => b.level === selectedLevel);
-      }
-      renderBooks(filtered);
-    }
-
-    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
-    document.getElementById('levelFilter').addEventListener('change', applyFilters);
 
     loadBooks();
   </script>
