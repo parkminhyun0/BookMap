@@ -1,59 +1,151 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>도서 목록</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <div class="container py-5">
-    <h2 class="mb-4">📖 도서 목록</h2>
-    <div id="loading" class="alert alert-info">⏳ 로딩중...</div>
-    <div id="book-list" class="row g-3"></div>
-    <a href="index.html" class="btn btn-secondary mt-3">🏠 홈으로</a>
-  </div>
-
-  <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbzMpfn1Lc4AOT1rl2JBpp1ls-TemgThPKQgj40Pk__JzerybwGm9lasjleeDZfvYKZE_w/exec";
-
-  async function loadBooks() {
-    try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      renderBooks(data.filter(b => b.status === "승인"));
-    } catch (err) {
-      document.getElementById("book-list").innerHTML =
-        `<div class="alert alert-danger">❌ 불러오기 실패: ${err.message}</div>`;
-    } finally {
-      document.getElementById("loading").style.display = "none";
-    }
-  }
-
-  function renderBooks(data) {
-    const container = document.getElementById("book-list");
-    if (data.length === 0) {
-      container.innerHTML = `<p>등록된 승인 도서가 없습니다.</p>`;
-      return;
-    }
-    container.innerHTML = data.map(b => `
-      <div class="col-md-6">
-        <div class="card h-100 shadow-sm">
-          <img src="${b.cover || 'https://via.placeholder.com/150'}" class="card-img-top" alt="${b.title}">
-          <div class="card-body">
-            <h5 class="card-title">${b.title}</h5>
-            <p class="card-text">저자: ${b.author || '-'} ${b.translator ? `<br>옮긴이: ${b.translator}` : ''}</p>
-            <p class="card-text">출판사: ${b.publisher || '-'}</p>
-            <p class="card-text">분류: ${(b.category || '').split(',').map(c=>`<span class="badge bg-primary me-1">${c.trim()}</span>`).join('')}</p>
-            <p class="card-text">난이도: ${b.level || '-'}</p>
-            <p class="card-text">${b.reason || ''}</p>
-            ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-sm btn-outline-secondary">구매/참고</a>` : ''}
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  loadBooks();
-  </script>
-</body>
-</html>
+diff --git a/book.html b/book.html
+index 2996f56884230ce3e07ea8c9cb98e5cc19d0c5c9..83d22166292aa3e7004703f9182feb2f37e5c925 100644
+--- a/book.html
++++ b/book.html
+@@ -1,59 +1,127 @@
+ <!DOCTYPE html>
+ <html lang="ko">
+ <head>
+   <meta charset="UTF-8">
+   <title>도서 목록</title>
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+ </head>
+ <body class="bg-light">
+   <div class="container py-5">
+     <h2 class="mb-4">📖 도서 목록</h2>
+     <div id="loading" class="alert alert-info">⏳ 로딩중...</div>
+     <div id="book-list" class="row g-3"></div>
+     <a href="index.html" class="btn btn-secondary mt-3">🏠 홈으로</a>
+   </div>
+ 
+   <script>
+   const API_URL = "https://script.google.com/macros/s/AKfycbzMpfn1Lc4AOT1rl2JBpp1ls-TemgThPKQgj40Pk__JzerybwGm9lasjleeDZfvYKZE_w/exec";
+ 
+   async function loadBooks() {
+     try {
+       const res = await fetch(API_URL);
+       const data = await res.json();
+       renderBooks(data.filter(b => b.status === "승인"));
+     } catch (err) {
+-      document.getElementById("book-list").innerHTML =
+-        `<div class="alert alert-danger">❌ 불러오기 실패: ${err.message}</div>`;
++      const container = document.getElementById("book-list");
++      container.textContent = "";
++      const errorDiv = document.createElement("div");
++      errorDiv.className = "alert alert-danger";
++      errorDiv.textContent = "❌ 불러오기 실패: " + err.message;
++      container.appendChild(errorDiv);
+     } finally {
+       document.getElementById("loading").style.display = "none";
+     }
+   }
+ 
+   function renderBooks(data) {
+     const container = document.getElementById("book-list");
++    container.textContent = "";
+     if (data.length === 0) {
+-      container.innerHTML = `<p>등록된 승인 도서가 없습니다.</p>`;
++      const empty = document.createElement("p");
++      empty.textContent = "등록된 승인 도서가 없습니다.";
++      container.appendChild(empty);
+       return;
+     }
+-    container.innerHTML = data.map(b => `
+-      <div class="col-md-6">
+-        <div class="card h-100 shadow-sm">
+-          <img src="${b.cover || 'https://via.placeholder.com/150'}" class="card-img-top" alt="${b.title}">
+-          <div class="card-body">
+-            <h5 class="card-title">${b.title}</h5>
+-            <p class="card-text">저자: ${b.author || '-'} ${b.translator ? `<br>옮긴이: ${b.translator}` : ''}</p>
+-            <p class="card-text">출판사: ${b.publisher || '-'}</p>
+-            <p class="card-text">분류: ${(b.category || '').split(',').map(c=>`<span class="badge bg-primary me-1">${c.trim()}</span>`).join('')}</p>
+-            <p class="card-text">난이도: ${b.level || '-'}</p>
+-            <p class="card-text">${b.reason || ''}</p>
+-            ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-sm btn-outline-secondary">구매/참고</a>` : ''}
+-          </div>
+-        </div>
+-      </div>
+-    `).join('');
++    data.forEach(b => {
++      const col = document.createElement("div");
++      col.className = "col-md-6";
++
++      const card = document.createElement("div");
++      card.className = "card h-100 shadow-sm";
++
++      const img = document.createElement("img");
++      img.src = b.cover || "https://via.placeholder.com/150";
++      img.className = "card-img-top";
++      img.alt = b.title;
++      card.appendChild(img);
++
++      const body = document.createElement("div");
++      body.className = "card-body";
++
++      const title = document.createElement("h5");
++      title.className = "card-title";
++      title.textContent = b.title;
++      body.appendChild(title);
++
++      const author = document.createElement("p");
++      author.className = "card-text";
++      author.textContent = "저자: " + (b.author || "-");
++      body.appendChild(author);
++
++      if (b.translator) {
++        const translator = document.createElement("p");
++        translator.className = "card-text";
++        translator.textContent = "옮긴이: " + b.translator;
++        body.appendChild(translator);
++      }
++
++      const publisher = document.createElement("p");
++      publisher.className = "card-text";
++      publisher.textContent = "출판사: " + (b.publisher || "-");
++      body.appendChild(publisher);
++
++      const category = document.createElement("p");
++      category.className = "card-text";
++      category.appendChild(document.createTextNode("분류: "));
++      (b.category || "").split(",").forEach(c => {
++        const trimmed = c.trim();
++        if (trimmed) {
++          const span = document.createElement("span");
++          span.className = "badge bg-primary me-1";
++          span.textContent = trimmed;
++          category.appendChild(span);
++        }
++      });
++      body.appendChild(category);
++
++      const level = document.createElement("p");
++      level.className = "card-text";
++      level.textContent = "난이도: " + (b.level || "-");
++      body.appendChild(level);
++
++      if (b.reason) {
++        const reason = document.createElement("p");
++        reason.className = "card-text";
++        reason.textContent = b.reason;
++        body.appendChild(reason);
++      }
++
++      if (b.link) {
++        const link = document.createElement("a");
++        link.href = b.link;
++        link.target = "_blank";
++        link.className = "btn btn-sm btn-outline-secondary";
++        link.textContent = "구매/참고";
++        body.appendChild(link);
++      }
++
++      card.appendChild(body);
++      col.appendChild(card);
++      container.appendChild(col);
++    });
+   }
+ 
+   loadBooks();
+   </script>
+ </body>
+ </html>
