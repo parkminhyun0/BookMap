@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔑 관리자 페이지</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: 'Inter', sans-serif;
+    }
+    .table-responsive {
+      border-radius: 8px;
+    }
+    .table th, .table td {
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">📝 관리자 페이지 (승인 / 삭제)</h2>
+    <div id="loading" class="alert alert-info text-center">⏳ 로딩중...</div>
+    <div id="admin-table-container" class="table-responsive bg-white shadow-sm">
+      <table class="table table-bordered table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>제목</th>
+            <th>저자</th>
+            <th>출판사</th>
+            <th>상태</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="admin-list"></tbody>
+      </table>
+    </div>
+    <a href="home.html" class="btn btn-secondary mt-4 d-block text-center">🏠 홈으로</a>
+  </div>
+  
+  <!-- Toast 컨테이너 -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">알림</strong>
+        <small>방금</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toast-message"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyTgMuVg8xanCjwuazHHiXYRsLH2a6vxg4OzhfqdmD7l0YrPpAymyheW7Kq2s_ihAdO4Q/exec";
+
+    function showToast(message) {
+      const toastEl = document.getElementById('liveToast');
+      const toastMessageEl = document.getElementById('toast-message');
+      toastMessageEl.textContent = message;
+      const toast = new bootstrap.Toast(toastEl);
+      toast.show();
+    }
+
+    async function loadBooks() {
+      const loadingEl = document.getElementById("loading");
+      const adminListEl = document.getElementById("admin-list");
+      loadingEl.style.display = "block";
+      adminListEl.innerHTML = "";
+
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          adminListEl.innerHTML = `<tr><td colspan="6" class="text-center text-muted">등록된 도서가 없습니다.</td></tr>`;
+          return;
+        }
+
+        adminListEl.innerHTML = data.map((b, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${b.title}</td>
+            <td>${b.author}</td>
+            <td>${b.publisher || '-'}</td>
+            <td>${b.status}</td>
+            <td>
+              <button class="btn btn-success btn-sm me-1" onclick="updateStatus(${b.rowNumber}, 'approve')">승인</button>
+              <button class="btn btn-danger btn-sm" onclick="updateStatus(${b.rowNumber}, 'delete')">삭제</button>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        adminListEl.innerHTML = `<tr><td colspan="6" class="text-danger text-center">❌ 불러오기 실패: ${err.message}</td></tr>`;
+      } finally {
+        loadingEl.style.display = "none";
+      }
+    }
+
+    async function updateStatus(rowNumber, action) {
+      if (!confirm(`이 도서를 ${action === 'approve' ? '승인' : '삭제'}하시겠습니까?`)) {
+        return;
+      }
+      
+      const payload = { row: rowNumber, action };
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" }
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✅ 처리 완료`);
+          loadBooks();
+        } else {
+          showToast(`❌ 처리 실패: ${data.error}`);
+        }
+      } catch (err) {
+        showToast(`❌ 오류: ${err.message}`);
+      }
+    }
+
+    window.onload = loadBooks;
+  </script>
+</body>
+</html>
