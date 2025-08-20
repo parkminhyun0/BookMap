@@ -1,175 +1,85 @@
-diff --git a/books.html b/books.html
-index a8b5288ffeb19ed26a741e1ee8e3aef9352b989e..b154244b4d061c2ae6cd2351fb876f7ee3dc9764 100644
---- a/books.html
-+++ b/books.html
-@@ -1,65 +1,136 @@
- <!DOCTYPE html>
- <html lang="ko">
- <head>
-   <meta charset="UTF-8">
-   <title>📘 도서 상세 페이지</title>
-   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
- </head>
- <body class="bg-light">
-   <div class="container py-5">
-     <div id="loading" class="alert alert-info">⏳ 도서 정보를 불러오는 중입니다...</div>
-     <div id="book-detail"></div>
-     <a href="book.html" class="btn btn-link mt-4">📚 도서 목록으로</a>
-   </div>
- 
-   <script>
-   const API_URL = "https://script.google.com/macros/s/AKfycbzMpfn1Lc4AOT1rl2JBpp1ls-TemgThPKQgj40Pk__JzerybwGm9lasjleeDZfvYKZE_w/exec";
- 
-   // URL에서 id 파라미터 가져오기
-   const urlParams = new URLSearchParams(window.location.search);
-   const bookId = parseInt(urlParams.get("id"), 10);
- 
-   async function loadBookDetail() {
--    try {
--      const res = await fetch(API_URL + "?status=승인");
--      const books = await res.json();
-+      try {
-+        const res = await fetch(API_URL + "?status=승인");
-+        const books = await res.json();
- 
--      document.getElementById("loading").style.display = "none";
-+        document.getElementById("loading").style.display = "none";
- 
--      if (!books || isNaN(bookId) || !books[bookId]) {
--        document.getElementById("book-detail").innerHTML = `<div class="alert alert-danger">❌ 도서를 찾을 수 없습니다.</div>`;
--        return;
--      }
-+        if (!books || isNaN(bookId) || !books[bookId]) {
-+          const detail = document.getElementById("book-detail");
-+          detail.textContent = "";
-+          const alert = document.createElement("div");
-+          alert.className = "alert alert-danger";
-+          alert.textContent = "❌ 도서를 찾을 수 없습니다.";
-+          detail.appendChild(alert);
-+          return;
-+        }
-+
-+        const b = books[bookId];
-+        const detail = document.getElementById("book-detail");
-+        detail.textContent = "";
-+        const card = document.createElement("div");
-+        card.className = "card shadow-sm";
-+
-+        const row = document.createElement("div");
-+        row.className = "row g-0";
-+
-+        const colImg = document.createElement("div");
-+        colImg.className = "col-md-4";
-+        const img = document.createElement("img");
-+        img.src = b.cover || "https://via.placeholder.com/200x300";
-+        img.className = "img-fluid rounded-start";
-+        img.alt = b.title;
-+        colImg.appendChild(img);
-+
-+        const colBody = document.createElement("div");
-+        colBody.className = "col-md-8";
-+        const cardBody = document.createElement("div");
-+        cardBody.className = "card-body";
-+
-+        const title = document.createElement("h3");
-+        title.className = "card-title mb-3";
-+        title.textContent = b.title;
-+        cardBody.appendChild(title);
-+
-+        const author = document.createElement("p");
-+        const authorLabel = document.createElement("b");
-+        authorLabel.textContent = "저자:";
-+        author.appendChild(authorLabel);
-+        author.appendChild(document.createTextNode(" " + (b.author || "-")));
-+        cardBody.appendChild(author);
- 
--      const b = books[bookId];
--
--      document.getElementById("book-detail").innerHTML = `
--        <div class="card shadow-sm">
--          <div class="row g-0">
--            <div class="col-md-4">
--              <img src="${b.cover || 'https://via.placeholder.com/200x300'}" class="img-fluid rounded-start" alt="${b.title}">
--            </div>
--            <div class="col-md-8">
--              <div class="card-body">
--                <h3 class="card-title mb-3">${b.title}</h3>
--                <p><b>저자:</b> ${b.author || '-'}</p>
--                <p><b>옮긴이:</b> ${b.translator || '-'}</p>
--                <p><b>출판사:</b> ${b.publisher || '-'}</p>
--                <p><b>분류:</b> <span class="badge bg-primary">${b.category || '-'}</span></p>
--                <p><b>난이도:</b> <span class="badge bg-success">${b.level || '-'}</span></p>
--                <p class="mt-3">${b.reason || '설명 없음'}</p>
--                ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-outline-secondary mt-2">🔗 구매/참고 페이지</a>` : ''}
--              </div>
--            </div>
--          </div>
--        </div>
--      `;
--    } catch (err) {
--      document.getElementById("loading").textContent = "❌ 불러오기 실패: " + err;
-+        const translator = document.createElement("p");
-+        const translatorLabel = document.createElement("b");
-+        translatorLabel.textContent = "옮긴이:";
-+        translator.appendChild(translatorLabel);
-+        translator.appendChild(document.createTextNode(" " + (b.translator || "-")));
-+        cardBody.appendChild(translator);
-+
-+        const publisher = document.createElement("p");
-+        const publisherLabel = document.createElement("b");
-+        publisherLabel.textContent = "출판사:";
-+        publisher.appendChild(publisherLabel);
-+        publisher.appendChild(document.createTextNode(" " + (b.publisher || "-")));
-+        cardBody.appendChild(publisher);
-+
-+        const category = document.createElement("p");
-+        const catLabel = document.createElement("b");
-+        catLabel.textContent = "분류:";
-+        category.appendChild(catLabel);
-+        const catSpan = document.createElement("span");
-+        catSpan.className = "badge bg-primary";
-+        catSpan.textContent = b.category || "-";
-+        category.appendChild(document.createTextNode(" "));
-+        category.appendChild(catSpan);
-+        cardBody.appendChild(category);
-+
-+        const level = document.createElement("p");
-+        const levelLabel = document.createElement("b");
-+        levelLabel.textContent = "난이도:";
-+        level.appendChild(levelLabel);
-+        const levelSpan = document.createElement("span");
-+        levelSpan.className = "badge bg-success";
-+        levelSpan.textContent = b.level || "-";
-+        level.appendChild(document.createTextNode(" "));
-+        level.appendChild(levelSpan);
-+        cardBody.appendChild(level);
-+
-+        const reason = document.createElement("p");
-+        reason.className = "mt-3";
-+        reason.textContent = b.reason || "설명 없음";
-+        cardBody.appendChild(reason);
-+
-+        if (b.link) {
-+          const link = document.createElement("a");
-+          link.href = b.link;
-+          link.target = "_blank";
-+          link.className = "btn btn-outline-secondary mt-2";
-+          link.textContent = "🔗 구매/참고 페이지";
-+          cardBody.appendChild(link);
-+        }
-+
-+        colBody.appendChild(cardBody);
-+        row.appendChild(colImg);
-+        row.appendChild(colBody);
-+        card.appendChild(row);
-+        detail.appendChild(card);
-+      } catch (err) {
-+        document.getElementById("loading").textContent = "❌ 불러오기 실패: " + err;
-+      }
-     }
--  }
- 
-   loadBookDetail();
-   </script>
- </body>
- </html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📘 도서 상세 페이지</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card { border-radius: 1rem; }
+    .img-fluid { border-radius: 1rem; }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div id="loading" class="alert alert-info text-center rounded-3">⏳ 도서 정보를 불러오는 중입니다...</div>
+    <div id="book-detail"></div>
+    <a href="../버전 2/book.html" class="btn btn-link mt-4 w-100 rounded-pill shadow-sm">📚 도서 목록으로</a>
+  </div>
+
+  <script>
+    (() => {
+      const API_URL = "https://script.google.com/macros/s/AKfycbzMpfn1Lc4AOT1rl2JBpp1ls-TemgThPKQgj40Pk__JzerybwGm9lasjleeDZfvYKZE_w/exec";
+
+      // URL에서 id 파라미터 가져오기
+      const urlParams = new URLSearchParams(window.location.search);
+      const rowNumber = parseInt(urlParams.get("id"), 10);
+
+      document.addEventListener("DOMContentLoaded", () => {
+          loadBookDetail();
+      });
+
+      async function loadBookDetail() {
+        try {
+          if (isNaN(rowNumber)) {
+            throw new Error("잘못된 도서 ID입니다.");
+          }
+          
+          const res = await fetch(API_URL + "?rowNumber=" + rowNumber);
+          const data = await res.json();
+          
+          document.getElementById("loading").style.display = "none";
+          
+          if (!data || data.length === 0) {
+            document.getElementById("book-detail").innerHTML = `<div class="alert alert-danger rounded-3">❌ 도서를 찾을 수 없습니다.</div>`;
+            return;
+          }
+
+          const b = data[0]; // rowNumber로 검색했기 때문에 첫 번째 결과만 사용
+          
+          document.getElementById("book-detail").innerHTML = `
+            <div class="card shadow-sm rounded-3">
+              <div class="row g-0">
+                <div class="col-md-4">
+                  <img src="${b.cover}" class="img-fluid rounded-start" alt="${b.title}" onerror="this.src='https://placehold.co/400x600/E9ECEF/000000?text=No+Image';">
+                </div>
+                <div class="col-md-8">
+                  <div class="card-body">
+                    <h3 class="card-title fw-bold mb-3">${b.title}</h3>
+                    <p><b>저자:</b> ${b.author || '-'}</p>
+                    <p><b>옮긴이:</b> ${b.translator || '-'}</p>
+                    <p><b>출판사:</b> ${b.publisher || '-'}</p>
+                    <p><b>분류:</b> 
+                      ${(b.category || '').split(',').map(c => `<span class="badge bg-primary rounded-pill me-1">${c.trim()}</span>`).join('')}
+                    </p>
+                    <p><b>난이도:</b> <span class="badge bg-success rounded-pill">${b.level || '-'}</span></p>
+                    <p class="mt-4">${b.reason || '설명 없음'}</p>
+                    ${b.link ? `<a href="${b.link}" target="_blank" class="btn btn-outline-info rounded-pill mt-3">📖 구매/참고 링크</a>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        } catch (err) {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("book-detail").innerHTML = `<div class="alert alert-danger rounded-3">❌ 오류: ${err.message}</div>`;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
